@@ -1,0 +1,96 @@
+Build a full-stack SaaS web application called "GymFlow" for gym management.
+
+TECH STACK:
+- Frontend: React (with Tailwind CSS)
+- Backend: Node.js with Express
+- Database: PostgreSQL
+- Auth: JWT-based authentication
+- Notifications: Email + SMS (mock service initially)
+- Deployment ready (Docker support)
+
+CORE FEATURES:
+
+1. Multi-Tenant SaaS
+- Each gym is a separate tenant (Gym Owner account)
+- Gym owners can login and manage their own gym data only
+
+2. User Roles
+- Admin (Gym Owner)
+- Staff
+- Members
+
+3. Member Management
+- Add/Edit/Delete members
+- Store: name, phone, email, membership plan, start date, end date
+- Upload profile photo
+- Membership status: Active / Expired / Pending
+
+4. Membership Plans
+- Create plans (Monthly, Quarterly, Yearly)
+- Price, duration, benefits
+
+5. Automated Alerts System (IMPORTANT)
+- Send alerts:
+  - 7 days before expiry
+  - 3 days before expiry
+  - On expiry
+- Alerts go to:
+  - Member (SMS/Email)
+  - Gym Admin dashboard notifications
+- Cron job scheduler for daily checks
+
+6. Expiry Logic (CRITICAL BUSINESS FEATURE)
+- When membership expires:
+  - Mark member as "Expired"
+  - Restrict access (simulate check-in block)
+  - Show alert in dashboard: "X members expired today"
+- Optional: Add grace period setting
+
+7. Dashboard
+- Total members
+- Active vs Expired members
+- Revenue overview
+- Upcoming expiries (next 7 days)
+
+8. Check-in System (Optional but useful)
+- Member check-in via ID or phone number
+- Prevent check-in if membership expired
+
+9. Billing / Payments (Mock)
+- Record payment entries
+- Payment history per member
+
+10. Notifications UI
+- Bell icon showing alerts
+- List of expiring members
+
+11. API Design
+- REST APIs with proper structure
+- Middleware for authentication & tenant isolation
+
+12. Database Schema (IMPORTANT)
+Tables:
+- gyms
+- users
+- members
+- membership_plans
+- subscriptions
+- payments
+- notifications
+
+13. Clean Code Requirements
+- Modular folder structure
+- Environment variables support
+- Error handling middleware
+
+14. Bonus (if possible)
+- WhatsApp integration placeholder
+- Export members as CSV
+
+GOAL:
+The system should replace manual gym register books and automate membership tracking and alerts.
+
+OUTPUT:
+- Full working code (frontend + backend)
+- Setup instructions
+- Seed data for demo

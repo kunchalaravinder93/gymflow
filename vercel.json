@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm install && pnpm run build",
+  "outputDirectory": "artifacts/gymflow/dist/public",
+  "framework": "vite",
+  "functions": {
+    "api/index.ts": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/check-expiry",
+      "schedule": "0 8 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(api|auth)/:path*",
+      "destination": "/api"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

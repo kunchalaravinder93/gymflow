@@ -1,0 +1,1401 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: GymFlow API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: dashboard
+    description: Dashboard and analytics
+  - name: members
+    description: Member management
+  - name: plans
+    description: Membership plans
+  - name: subscriptions
+    description: Member subscriptions
+  - name: payments
+    description: Billing and payments
+  - name: notifications
+    description: Notifications and alerts
+  - name: checkins
+    description: Member check-ins
+  - name: staff
+    description: Staff management
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ──────────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: registerGym
+      tags: [auth]
+      summary: Register a new gym (tenant)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterGymBody"
+      responses:
+        "201":
+          description: Gym registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/upcoming-expiries:
+    get:
+      operationId: getUpcomingExpiries
+      tags: [dashboard]
+      summary: Get members expiring in the next 7 days
+      responses:
+        "200":
+          description: Upcoming expiries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpiryAlert"
+
+  /dashboard/recent-checkins:
+    get:
+      operationId: getRecentCheckins
+      tags: [dashboard]
+      summary: Get recent check-ins (last 20)
+      responses:
+        "200":
+          description: Recent check-ins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Checkin"
+
+  /dashboard/revenue:
+    get:
+      operationId: getRevenueOverview
+      tags: [dashboard]
+      summary: Get revenue overview by month (last 6 months)
+      responses:
+        "200":
+          description: Revenue overview
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RevenueMonth"
+
+  # ── Members ───────────────────────────────────────────────────────────────
+  /members:
+    get:
+      operationId: listMembers
+      tags: [members]
+      summary: List all members
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, expired, pending]
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: planId
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+
+    post:
+      operationId: createMember
+      tags: [members]
+      summary: Create a new member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMemberBody"
+      responses:
+        "201":
+          description: Member created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+
+  /members/export:
+    get:
+      operationId: exportMembers
+      tags: [members]
+      summary: Export members as CSV data
+      responses:
+        "200":
+          description: Members CSV data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportMembersResponse"
+
+  /members/{id}:
+    get:
+      operationId: getMember
+      tags: [members]
+      summary: Get a member by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetail"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateMember
+      tags: [members]
+      summary: Update a member
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMemberBody"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+
+    delete:
+      operationId: deleteMember
+      tags: [members]
+      summary: Delete a member
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /members/{id}/checkin:
+    post:
+      operationId: checkInMember
+      tags: [members]
+      summary: Check in a member
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Check-in result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckinResult"
+        "403":
+          description: Membership expired
+
+  /members/{id}/renew:
+    post:
+      operationId: renewMember
+      tags: [members]
+      summary: Renew a member's membership
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenewMemberBody"
+      responses:
+        "200":
+          description: Membership renewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "404":
+          description: Member not found
+
+  # ── Membership Plans ──────────────────────────────────────────────────────
+  /plans:
+    get:
+      operationId: listPlans
+      tags: [plans]
+      summary: List all membership plans
+      responses:
+        "200":
+          description: List of plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+
+    post:
+      operationId: createPlan
+      tags: [plans]
+      summary: Create a new plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlanBody"
+      responses:
+        "201":
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+
+  /plans/{id}:
+    get:
+      operationId: getPlan
+      tags: [plans]
+      summary: Get a plan by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updatePlan
+      tags: [plans]
+      summary: Update a plan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePlanBody"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+
+    delete:
+      operationId: deletePlan
+      tags: [plans]
+      summary: Delete a plan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Subscriptions ─────────────────────────────────────────────────────────
+  /subscriptions:
+    get:
+      operationId: listSubscriptions
+      tags: [subscriptions]
+      summary: List subscriptions
+      parameters:
+        - in: query
+          name: memberId
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, expired, pending]
+      responses:
+        "200":
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+
+    post:
+      operationId: createSubscription
+      tags: [subscriptions]
+      summary: Create a subscription for a member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionBody"
+      responses:
+        "201":
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  /subscriptions/{id}:
+    get:
+      operationId: getSubscription
+      tags: [subscriptions]
+      summary: Get a subscription by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+    patch:
+      operationId: updateSubscription
+      tags: [subscriptions]
+      summary: Update a subscription
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriptionBody"
+      responses:
+        "200":
+          description: Updated subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  # ── Payments ──────────────────────────────────────────────────────────────
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List payments
+      parameters:
+        - in: query
+          name: memberId
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Record a payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentBody"
+      responses:
+        "201":
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/{id}:
+    get:
+      operationId: getPayment
+      tags: [payments]
+      summary: Get a payment by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  # ── Notifications ─────────────────────────────────────────────────────────
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/unread-count:
+    get:
+      operationId: getUnreadNotificationCount
+      tags: [notifications]
+      summary: Get count of unread notifications
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCount"
+
+  /notifications/mark-all-read:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Done
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a notification as read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  # ── Check-ins ─────────────────────────────────────────────────────────────
+  /checkins:
+    get:
+      operationId: listCheckins
+      tags: [checkins]
+      summary: List check-ins
+      parameters:
+        - in: query
+          name: memberId
+          schema:
+            type: integer
+        - in: query
+          name: date
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of check-ins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Checkin"
+
+  /checkins/lookup:
+    post:
+      operationId: lookupMemberCheckin
+      tags: [checkins]
+      summary: Look up member by phone or ID for check-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LookupCheckinBody"
+      responses:
+        "200":
+          description: Check-in result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckinResult"
+
+  # ── Staff ──────────────────────────────────────────────────────────────────
+  /staff:
+    get:
+      operationId: listStaff
+      tags: [staff]
+      summary: List all staff members
+      responses:
+        "200":
+          description: List of staff
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StaffMember"
+
+    post:
+      operationId: createStaff
+      tags: [staff]
+      summary: Add a staff member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStaffBody"
+      responses:
+        "201":
+          description: Staff created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffMember"
+
+  /staff/{id}:
+    patch:
+      operationId: updateStaff
+      tags: [staff]
+      summary: Update a staff member
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStaffBody"
+      responses:
+        "200":
+          description: Updated staff member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffMember"
+
+    delete:
+      operationId: deleteStaff
+      tags: [staff]
+      summary: Remove a staff member
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # ── Auth ──────────────────────────────────────────────────────────────
+    RegisterGymBody:
+      type: object
+      properties:
+        gymName:
+          type: string
+        ownerName:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        phone:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+      required:
+        - gymName
+        - ownerName
+        - email
+        - password
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required:
+        - token
+        - user
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, staff]
+        gymId:
+          type: integer
+        gymName:
+          type: string
+      required:
+        - id
+        - name
+        - email
+        - role
+        - gymId
+        - gymName
+
+    # ── Dashboard ────────────────────────────────────────────────────────
+    DashboardStats:
+      type: object
+      properties:
+        totalMembers:
+          type: integer
+        activeMembers:
+          type: integer
+        expiredMembers:
+          type: integer
+        pendingMembers:
+          type: integer
+        todayCheckins:
+          type: integer
+        expiringThisWeek:
+          type: integer
+        totalRevenue:
+          type: number
+        monthRevenue:
+          type: number
+      required:
+        - totalMembers
+        - activeMembers
+        - expiredMembers
+        - pendingMembers
+        - todayCheckins
+        - expiringThisWeek
+        - totalRevenue
+        - monthRevenue
+
+    ExpiryAlert:
+      type: object
+      properties:
+        memberId:
+          type: integer
+        memberName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        planName:
+          type: string
+        expiryDate:
+          type: string
+        daysUntilExpiry:
+          type: integer
+        status:
+          type: string
+          enum: [active, expired, pending]
+      required:
+        - memberId
+        - memberName
+        - email
+        - planName
+        - expiryDate
+        - daysUntilExpiry
+        - status
+
+    RevenueMonth:
+      type: object
+      properties:
+        month:
+          type: string
+        revenue:
+          type: number
+        paymentCount:
+          type: integer
+      required:
+        - month
+        - revenue
+        - paymentCount
+
+    # ── Member ────────────────────────────────────────────────────────────
+    Member:
+      type: object
+      properties:
+        id:
+          type: integer
+        gymId:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        profilePhoto:
+          type: ["string", "null"]
+        membershipStatus:
+          type: string
+          enum: [active, expired, pending]
+        planId:
+          type: ["integer", "null"]
+        planName:
+          type: ["string", "null"]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - gymId
+        - name
+        - email
+        - membershipStatus
+        - createdAt
+
+    MemberDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        gymId:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        profilePhoto:
+          type: ["string", "null"]
+        membershipStatus:
+          type: string
+          enum: [active, expired, pending]
+        planId:
+          type: ["integer", "null"]
+        planName:
+          type: ["string", "null"]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        subscriptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subscription"
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        checkins:
+          type: array
+          items:
+            $ref: "#/components/schemas/Checkin"
+      required:
+        - id
+        - gymId
+        - name
+        - email
+        - membershipStatus
+        - createdAt
+        - subscriptions
+        - payments
+        - checkins
+
+    CreateMemberBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        profilePhoto:
+          type: ["string", "null"]
+        planId:
+          type: ["integer", "null"]
+        startDate:
+          type: ["string", "null"]
+      required:
+        - name
+        - email
+
+    UpdateMemberBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        profilePhoto:
+          type: ["string", "null"]
+        planId:
+          type: ["integer", "null"]
+        membershipStatus:
+          type: string
+          enum: [active, expired, pending]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+
+    RenewMemberBody:
+      type: object
+      properties:
+        planId:
+          type: integer
+        amount:
+          type: number
+        paymentMethod:
+          type: string
+          enum: [cash, card, bank_transfer, other]
+        startDate:
+          type: string
+      required:
+        - planId
+        - amount
+
+    ExportMembersResponse:
+      type: object
+      properties:
+        csv:
+          type: string
+        filename:
+          type: string
+      required:
+        - csv
+        - filename
+
+    # ── Plans ─────────────────────────────────────────────────────────────
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+        gymId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        durationDays:
+          type: integer
+        benefits:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - gymId
+        - name
+        - price
+        - durationDays
+        - isActive
+        - memberCount
+        - createdAt
+
+    CreatePlanBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        durationDays:
+          type: integer
+        benefits:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+      required:
+        - name
+        - price
+        - durationDays
+
+    UpdatePlanBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        durationDays:
+          type: integer
+        benefits:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+
+    # ── Subscriptions ─────────────────────────────────────────────────────
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+        memberId:
+          type: integer
+        planId:
+          type: integer
+        planName:
+          type: ["string", "null"]
+        startDate:
+          type: string
+        endDate:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, pending]
+        gracePeriodDays:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - memberId
+        - planId
+        - startDate
+        - endDate
+        - status
+        - gracePeriodDays
+        - createdAt
+
+    CreateSubscriptionBody:
+      type: object
+      properties:
+        memberId:
+          type: integer
+        planId:
+          type: integer
+        startDate:
+          type: string
+        gracePeriodDays:
+          type: integer
+      required:
+        - memberId
+        - planId
+        - startDate
+
+    UpdateSubscriptionBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, expired, pending]
+        endDate:
+          type: string
+        gracePeriodDays:
+          type: integer
+
+    # ── Payments ──────────────────────────────────────────────────────────
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        memberId:
+          type: integer
+        memberName:
+          type: ["string", "null"]
+        subscriptionId:
+          type: ["integer", "null"]
+        amount:
+          type: number
+        method:
+          type: string
+          enum: [cash, card, upi, bank_transfer, other]
+        notes:
+          type: ["string", "null"]
+        paidAt:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - memberId
+        - amount
+        - method
+        - paidAt
+        - createdAt
+
+    CreatePaymentBody:
+      type: object
+      properties:
+        memberId:
+          type: integer
+        subscriptionId:
+          type: ["integer", "null"]
+        amount:
+          type: number
+        method:
+          type: string
+          enum: [cash, card, upi, bank_transfer, other]
+        notes:
+          type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+      required:
+        - memberId
+        - amount
+        - method
+
+    # ── Notifications ─────────────────────────────────────────────────────
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        gymId:
+          type: integer
+        memberId:
+          type: ["integer", "null"]
+        memberName:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [expiry_7days, expiry_3days, expired, payment_received, checkin, info]
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - gymId
+        - type
+        - title
+        - message
+        - isRead
+        - createdAt
+
+    UnreadCount:
+      type: object
+      properties:
+        count:
+          type: integer
+      required:
+        - count
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    # ── Check-ins ─────────────────────────────────────────────────────────
+    Checkin:
+      type: object
+      properties:
+        id:
+          type: integer
+        memberId:
+          type: integer
+        memberName:
+          type: ["string", "null"]
+        memberPhoto:
+          type: ["string", "null"]
+        checkedInAt:
+          type: string
+        status:
+          type: string
+          enum: [allowed, denied]
+        deniedReason:
+          type: ["string", "null"]
+      required:
+        - id
+        - memberId
+        - checkedInAt
+        - status
+
+    CheckinResult:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+        member:
+          $ref: "#/components/schemas/Member"
+        checkin:
+          $ref: "#/components/schemas/Checkin"
+        message:
+          type: string
+      required:
+        - allowed
+        - member
+        - checkin
+        - message
+
+    LookupCheckinBody:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Phone number or member ID
+      required:
+        - query
+
+    # ── Staff ─────────────────────────────────────────────────────────────
+    StaffMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        gymId:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [admin, staff]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - gymId
+        - name
+        - email
+        - role
+        - isActive
+        - createdAt
+
+    CreateStaffBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [admin, staff]
+      required:
+        - name
+        - email
+        - password
+        - role
+
+    UpdateStaffBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [admin, staff]
+        isActive:
+          type: boolean
